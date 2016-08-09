@@ -11,3 +11,5 @@ LEFT JOIN png_ssubcat_articulo subcat ON subcat.id = bu.id_ssubcat
 WHERE id_usuario = pidusuario
 AND ui.orden = 1$$
 DELIMITER ;
+
+sp_sel_busqueda_usuario_chat
