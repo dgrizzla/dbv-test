@@ -138,7 +138,7 @@ END$$
 DELIMITER ;
 
 DELIMITER $$
-ALTER TABLE `png_tipo` ADD `nombre` VARCHAR(50) NOT NULL DEFAULT 'Sin nombre' AFTER `id`;
+ALTER TABLE `png_tipo` ADD `nombre` VARCHAR(50) NOT NULL DEFAULT 'Sin nombre' AFTER `id`$$
 DELIMITER ;
 
 
