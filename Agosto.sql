@@ -280,6 +280,18 @@ group by u.id, m.id_usuario$$
 DELIMITER ;
 
 DELIMITER $$
+DROP FUNCTION IF EXISTS `fn_ins_png_conversacion`$$
+CREATE DEFINER=`root`@`localhost` FUNCTION `fn_ins_png_conversacion`(`pusuario1` INT, `pusuario2` INT) RETURNS int(11)
+    NO SQL
+BEGIN
+INSERT INTO `png_conversacion`(`usuario1`, `usuario2`)
+VALUES (pusuario1,pusuario2);
+return last_insert_id();
+END$$
+DELIMITER ;
+
+
+DELIMITER $$
 DROP PROCEDURE IF EXISTS sp_ins_png_mensaje$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_ins_png_mensaje`(IN `pmensaje` TEXT, IN `idemisor` INT, IN `idconversacion` INT)
     NO SQL
