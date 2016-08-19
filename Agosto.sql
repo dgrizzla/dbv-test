@@ -17,12 +17,6 @@ END$$
 
 DELIMITER ;
 
-
-
-
-
-
-
 DELIMITER $$
 DROP PROCEDURE IF EXISTS `sp_sel_png_tipo_tabla`$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_sel_png_tipo_tabla`(IN `ptabla` TEXT) NOT DETERMINISTIC NO SQL SQL SECURITY DEFINER 
@@ -201,4 +195,116 @@ JOIN png_opcion c ON c.id = a.id_opcion
 JOIN png_tipo d ON d.id = c.id_tipo
 WHERE a.id_rol = pid_rol AND d.id_tipo = pid_tipo$$
 
+DELIMITER ;
+
+DELIMITER $$
+DROP PROCEDURE IF EXISTS sp_sel_usuario_conversaciones$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_sel_usuario_conversaciones`(IN `pidusuario` INT)
+    NO SQL
+SELECT m.id, m.fecha, m.mensaje, u.usuario, u.nombres, u.apellidos, co.id as id_conversacion
+FROM png_mensaje m 
+INNER JOIN png_usuario u ON m.usuario_emisor = u.id
+JOIN png_conversacion co ON co.id = m.id_conversacion
+WHERE ( m.id in 
+        ( SELECT Max(m.id)
+          FROM png_usuario_conversacion uc INNER JOIN png_mensaje m 
+            ON uc.id_conversacion = m.id_conversacion
+          WHERE uc.id_usuario = pidusuario
+          GROUP BY uc.id_conversacion
+        )
+      )$$
+DELIMITER ;      
+
+DELIMITER $$
+DROP PROCEDURE IF EXISTS sp_sel_busqueda_usuario_chat$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_sel_busqueda_usuario_chat`(IN `busqueda` VARCHAR(100))
+    READS SQL DATA
+BEGIN DECLARE userlike VARCHAR(100) ;
+
+SET userlike = CONCAT('%',busqueda,'%') ;
+SELECT id, usuario, nombres, apellidos, foto
+FROM png_usuario 
+WHERE usuario LIKE userlike
+OR CONCAT( nombres, apellidos ) LIKE userlike;
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+DROP PROCEDURE IF EXISTS sp_sel_png_mensajes_conversacion$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_sel_png_mensajes_conversacion`(IN `pidconversacion` INT)
+    NO SQL
+SELECT U.usuario, R.mensaje, DATE_FORMAT(R.fecha,'%d/%m/%Y') as fecha, U.id as id_usuario
+FROM png_usuario U, png_mensaje R 
+WHERE R.id_usuario = U.id AND R.id_conversacion= pidconversacion
+ORDER BY R.id ASC$$
+DELIMITER ;
+
+DELIMITER $$
+DROP PROCEDURE IF EXISTS sp_sel_png_conversacion_id$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_sel_png_conversacion_id`(IN `usuario1` INT, IN `usuario2` INT)
+    NO SQL
+SELECT DISTINCT c.id 
+FROM png_mensaje r
+JOIN png_conversacion c ON r.id_conversacion = c.id
+WHERE c.usuario1 = usuario1 and c.usuario2 = usuario2$$
+DELIMITER ;
+
+DELIMITER $$
+DROP PROCEDURE IF EXISTS sp_sel_png_conversaciones_usuario$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_sel_png_conversaciones_usuario`(IN `idusuario` INT)
+    READS SQL DATA
+SELECT DISTINCT u.nombres,u.apellidos, m.mensaje, m.fecha,c.id as id_conversacion,u.usuario, u.id as id_usuario
+FROM png_conversacion c
+JOIN png_usuario u ON c.usuario2 = u.id
+right JOIN png_mensaje m ON m.id_usuario = idusuario or u.id
+WHERE (m.id in (select max(me.id) from png_conversacion c
+     join png_mensaje me on me.id_conversacion = c.id 
+     where c.usuario1 = idusuario and c.usuario2 = u.id
+     group by c.id  ))
+AND  (c.usuario1 = idusuario and c.usuario2 = u.id)
+OR (c.usuario2 = idusuario and c.usuario1 = u.id)
+group by u.id, m.id_usuario
+union
+SELECT DISTINCT u.nombres,u.apellidos, m.mensaje, m.fecha,c.id as id_conversacion,u.usuario, u.id as id_usuario
+FROM png_conversacion c
+JOIN png_usuario u ON c.usuario2 = u.id
+left JOIN png_mensaje m ON m.id_usuario = idusuario or u.id
+WHERE (m.id in (select max(me.id) from png_conversacion c
+     join png_mensaje me on me.id_conversacion = c.id 
+     where c.usuario1 = idusuario and c.usuario2 = u.id
+     group by c.id  ))
+AND  (c.usuario1 = idusuario and c.usuario2 = u.id)
+OR (c.usuario2 = idusuario and c.usuario1 = u.id)
+group by u.id, m.id_usuario$$
+DELIMITER ;
+
+DELIMITER $$
+DROP PROCEDURE IF EXISTS sp_ins_png_mensaje$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_ins_png_mensaje`(IN `pmensaje` TEXT, IN `idemisor` INT, IN `idconversacion` INT)
+    NO SQL
+INSERT INTO `png_mensaje`(`mensaje`, `id_usuario`,
+                                         `id_conversacion`)
+VALUES (pmensaje, idemisor,idconversacion)$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE TABLE `png_conversacion` (
+ `id` int(11) NOT NULL AUTO_INCREMENT,
+ `usuario1` int(11) NOT NULL,
+ `usuario2` int(11) NOT NULL,
+ PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=latin1$$
+DELIMITER ;
+
+
+DELIMITER $$
+CREATE TABLE `png_mensaje` (
+ `id` int(11) NOT NULL AUTO_INCREMENT,
+ `mensaje` text NOT NULL,
+ `id_usuario` int(11) NOT NULL,
+ `fecha` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ `id_conversacion` int(11) NOT NULL,
+ PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=latin1$$
 DELIMITER ;
